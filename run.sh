@@ -188,4 +188,4 @@ a2enmod rewrite
 apachectl start
 
 # It's Homer time!
-$opensips -f $PATH_OPENSIPS_CFG -DD -E -e
+$opensips -f $PATH_OPENSIPS_CFG -DD -E
