@@ -13,7 +13,7 @@ A simple recipe to bring up a quick, self-contained Homer5 instance:
 
 Status: 
 
-* [![Build Status](https://travis-ci.org/sipcapture/homer-docker-opensips.svg?branch=master)](https://travis-ci.org/sipcapture/homer-docker-opensips)
+* [![Build Status](https://travis-ci.org/qxip/homer-docker-opensips.svg?branch=master)](https://travis-ci.org/qxip/homer-docker-opensips)
 
 * Initial working prototype - Testing Needed!
  
@@ -23,12 +23,12 @@ The single container instance is suitable for small setups and for testing only.
 
 ### Pull latest
 ```
-docker pull sipcapture/homer-docker-opensips
+docker pull qxip/homer-docker-opensips
 ```
 
 ### Run latest
 ```
-docker run -tid --name homer5 -p 80:80 -p 9060:9060/udp sipcapture/homer-docker-opensips
+docker run -tid --name homer5 -p 80:80 -p 9060:9060/udp qxip/homer-docker-opensips
 ```
 
 ### Running with a local MySQL
@@ -38,7 +38,7 @@ By default, the container runs with a local instance of MySQL running. It may be
 You can run this container with a volume like so:
 
 ```
-docker run -it -v /tmp/homer_mysql/:/var/lib/mysql --name homer5 -p 80:80 -p 9060:9060/udp sipcapture/homer-docker-opensips
+docker run -it -v /tmp/homer_mysql/:/var/lib/mysql --name homer5 -p 80:80 -p 9060:9060/udp qxip/homer-docker-opensips
 ```
 
 ### Running with an external MySQL
@@ -46,7 +46,7 @@ docker run -it -v /tmp/homer_mysql/:/var/lib/mysql --name homer5 -p 80:80 -p 906
 If you'd like to run with an external MySQL, pass in the host information for the remote MySQL as entrypoint parameters at the end of your `docker run` command.
 
 ```
-docker run -tid --name homer5 -p 80:80 -p 9060:9060/udp sipcapture/homer-docker-opensips --dbhost 10.0.0.1 --dbuser homer_user -dbpass homer_password
+docker run -tid --name homer5 -p 80:80 -p 9060:9060/udp qxip/homer-docker-opensips --dbhost 10.0.0.1 --dbuser homer_user -dbpass homer_password
 ```
 
 ### Entrypoint Parameters
@@ -65,8 +65,8 @@ Homer5 Docker parameters:
 
 ### Local Build & Test
 ```
-git clone https://github.com/sipcapture/homer-docker-opensips; cd homer-docker-opensips
-docker build --tag="sipcapture/homer-docker-opensips:local" ./everything/
-docker run -t -i sipcapture/homer-docker-opensips:local --name homer5
+git clone https://github.com/qxip/homer-docker-opensips; cd homer-docker-opensips
+docker build --tag="qxip/homer-docker-opensips:local" ./everything/
+docker run -t -i qxip/homer-docker-opensips:local --name homer5
 docker exec -it homer5 bash
 ```
