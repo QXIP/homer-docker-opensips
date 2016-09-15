@@ -93,14 +93,14 @@ DATADIR=/var/lib/mysql
 # Handy-dandy MySQL run function
 function MYSQL_RUN () {
 
-  chown -R mysql:mysql "$DATADIR"    
+  chown -R mysql:mysql "$DATADIR"
 
   echo 'Starting mysqld'
-  mysqld &
+  service mysql start
   #echo 'Waiting for mysqld to come online'
-  while [ ! -x /var/run/mysqld/mysqld.sock ]; do
-      sleep 1
-  done
+  #while [ ! -x /var/run/mysqld/mysqld.sock ]; do
+  #    sleep 1
+  #done
 
 }
 
@@ -116,18 +116,18 @@ function MYSQL_INITIAL_DATA_LOAD () {
   echo "Creating Databases..."
   mysql --host "$DB_HOST" -u "$sqluser" < $SQL_LOCATION/homer_databases.sql
   mysql --host "$DB_HOST" -u "$sqluser" < $SQL_LOCATION/homer_user.sql
-  
+
   mysql --host "$DB_HOST" -u "$sqluser" -e "GRANT ALL ON *.* TO '$DB_USER'@'%' IDENTIFIED BY '$DB_PASS'; FLUSH PRIVILEGES;";
   echo "Creating Tables..."
   mysql --host "$DB_HOST" -u "$sqluser" homer_data < $SQL_LOCATION/schema_data.sql
   mysql --host "$DB_HOST" -u "$sqluser" homer_configuration < $SQL_LOCATION/schema_configuration.sql
   mysql --host "$DB_HOST" -u "$sqluser" homer_statistic < $SQL_LOCATION/schema_statistic.sql
-  
+
   # echo "Creating local DB Node..."
   mysql --host "$DB_HOST" -u "$sqluser" homer_configuration -e "INSERT INTO node VALUES(1,'mysql','homer_data','3306','"$DB_USER"','"$DB_PASS"','sip_capture','node1', 1);"
-  
+
   echo 'Setting root password....'
-  mysql -u root -e "SET PASSWORD = PASSWORD('$sqlpassword');" 
+  mysql -u root -e "SET PASSWORD = PASSWORD('$sqlpassword');"
 
   echo "Homer initial data load complete" > $DATADIR/.homer_initialized
 
@@ -142,7 +142,7 @@ if [ "$DB_HOST" == "$DOCK_IP" ]; then
     # If we're running an internal container, we want to see if data is already installed...
     # That is, we don't want to overwrite what's there, or spend the time initializing.
     # In the initialization we drop a .homer_initialized file as a semaphore, and we load based on its presence.
-    if [[ ! -f $DATADIR/.homer_initialized ]]; then 
+    if [[ ! -f $DATADIR/.homer_initialized ]]; then
       # Run the load data function if that table doesn't exist
       MYSQL_INITIAL_DATA_LOAD
     else
@@ -158,7 +158,7 @@ if [ "$DB_HOST" == "$DOCK_IP" ]; then
     perl -p -i -e "s/homer_password/$DB_PASS/" $PATH_ROTATION_SCRIPT
     # Init rotation
     /opt/homer_rotate > /dev/null 2>&1
-    
+
     # Start the cron service in the background for rotation
     cron -f &
 
@@ -181,10 +181,11 @@ $opensips -f $PATH_OPENSIPS_CFG -c
 
 #enable apache mod_php and mod_rewrite
 a2enmod php5
-a2enmod rewrite 
+a2enmod rewrite
 
 # Start Apache
 # apachectl -DFOREGROUND
+rm -f /var/run/apache2/apache2.pid 2> /dev/null
 apachectl start
 
 # It's Homer time!
