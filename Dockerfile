@@ -74,8 +74,8 @@ RUN touch /var/log/cron.log
 RUN apt-get install cron -y
 
 # Add our crontab file
-RUN echo "30 3 * * * /opt/homer_rotate >> /var/log/cron.log 2>&1" > /crons.conf
-RUN crontab /crons.conf
+RUN echo "30 3 * * * /opt/homer_rotate >> /var/log/cron.log 2>&1" > /etc/cron.d/homer_rotate.conf
+RUN echo "local0.* -/var/log/opensips.log" > /etc/rsyslog.d/opensips.conf
 
 COPY run.sh /run.sh
 RUN chmod a+rx /run.sh

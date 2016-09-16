@@ -194,5 +194,10 @@ a2enmod rewrite
 rm -f /var/run/apache2/apache2.pid 2> /dev/null
 apachectl start
 
+service rsyslog start
+touch /var/log/opensips.log
+
 # It's Homer time!
-$opensips -f $PATH_OPENSIPS_CFG -DD -E
+/usr/sbin/opensipsctl start
+
+tail -f /var/log/opensips.log

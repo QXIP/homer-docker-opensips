@@ -4,7 +4,7 @@
 #
 #################################################
 
-log_level=3
+log_level=4
 log_stderror=no
 log_facility=LOG_LOCAL0
 
