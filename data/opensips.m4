@@ -13,7 +13,7 @@ children=4
 listen=hep_udp:0.0.0.0:LISTEN_PORT
 
 
-### CHANGEME path to your opensips modules here 
+### CHANGEME path to your opensips modules here
 mpath="/usr/lib/x86_64-linux-gnu/opensips/modules/"
 
 loadmodule "cfgutils.so"
@@ -33,6 +33,7 @@ loadmodule "avpops.so"
 loadmodule "mmgeoip.so"
 loadmodule "exec.so"
 loadmodule "json.so"
+loadmodule "statistics.so"
 
 #settings
 
@@ -82,18 +83,19 @@ modparam("mmgeoip", "mmgeoip_city_db_path", "/usr/share/GeoIP/GeoIP.dat")
 
 route{
 
-	cache_add("local", "a=>method::total", 1, 320);
-	cache_add("local", "a=>packet::count", 1, 320);
-	cache_add("local", "a=>packet::size", $ml, 320);
-	
-	if(cache_fetch("local","b=>$rm::$cs::$ci",$var(tmpvar))) {
+	update_stat("method::total", "+1");
+	update_stat("packet::count", "+1");
+	cache_add("local", "packet::size", $ml, 320); # TODO: add variable increment?
+
+	# XXX: isn't t_check_trans() more elegant/fast?
+	if(cache_fetch("local","msg:$rm::$cs::$ci",$var(tmpvar))) {
 		xlog("TEST: $var(tmpvar)\n");
 		route(STORE);
 		exit;
 	}
-	
-	cache_add("local", "b=>$rm::$cs::$ci", 1, 320);
-	cache_add("local", "a=>method::all", 1, 320);
+
+	cache_store("local", "msg:$rm::$cs::$ci", "yes", 320);
+	update_stat("method::all", "+1");
 
 
 	if (is_method("INVITE|REGISTER")) {
@@ -112,30 +114,30 @@ route{
 		};
 
 
-		if (is_method("INVITE")) {			
+		if (is_method("INVITE")) {
 
 		        if (has_totag()) {
-			        cache_add("local", "a=>method::reinvite", 1, 320);
+				update_stat("method::reinvite", "+1");
 			}
 			else {
-			        cache_add("local", "a=>method::invite", 1, 320);
+				update_stat("method::invite", "+1");
 				if($adu != "") {
-				        cache_add("local", "a=>method::invite::auth", 1, 320);
+					update_stat("method::invite::auth", "+1");
 				}
 
 				if($ua != "") {
 					avp_db_query("INSERT INTO stats_useragent_mem (useragent, method, total) VALUES('$ua', 'INVITE', 1) ON DUPLICATE KEY UPDATE total=total+1");
 				}
 
-			}					
+			}
 		}
 		else {
-			cache_add("local", "a=>method::register", 1, 320);
+			update_stat("method::register", "+1");
 
 			if($adu != "") {
-				cache_add("local", "a=>method::register::auth", 1, 320);
+				update_stat("method::register::auth", "+1");
 			}
-			
+
 			if($ua != "") {
 				avp_db_query("INSERT INTO stats_useragent_mem (useragent, method, total) VALUES('$ua', 'REGISTER', 1) ON DUPLICATE KEY UPDATE total=total+1");
 			}
@@ -143,48 +145,48 @@ route{
 	}
 
 	else if(is_method("BYE")) {
-	
-		cache_add("local", "a=>method::bye", 1, 320);
+
+		update_stat("method::bye", "+1");
 
 		if(is_present_hf("Reason")) {
                        $var(cause) = $(hdr(Reason){param.value,cause}{s.int});
                        if($var(cause) != 16 && $var(cause) !=17) {
-				cache_add("local", "a=>stats::sdf", 1, 320);
+				update_stat("stats::sdf", "+1");
 		       }
 		}
 
 	}
 	else if(is_method("CANCEL")) {
-		cache_add("local", "a=>method::cancel", 1, 320);
+		update_stat("method::cancel", "+1");
 	}
 	else if(is_method("OPTIONS")) {
-		cache_add("local", "a=>method::options", 1, 320);
+		update_stat("method::options", "+1");
 	}
 	else if(is_method("REFER")) {
-		cache_add("local", "a=>method::refer", 1, 320);
+		update_stat("method::refer", "+1");
 	}
 	else if(is_method("UPDATE")) {
-		cache_add("local", "a=>method::update", 1, 320);
-	}	
+		update_stat("method::update", "+1");
+	}
 	else if(is_method("PUBLISH"))
         {
                 if(has_body("application/vq-rtcpxr") && $(rb{s.substr,0,1}) != "x") {
                         $var(table) = "report_capture";
 			$var(reg) = "/.*CallID:((\d|\-|\w|\@){5,120}).*$/\1/s";
-                        $var(callid) = $(rb{re.subst,$var(reg)});			
+                        $var(callid) = $(rb{re.subst,$var(reg)});
 			#Local IP. Only for stats
 			xlog("PUBLISH: $var(callid)\n");
 			report_capture("report_capture", "$var(callid)", "1");
                         drop;
                 }
         }
-	
+
 	else if(is_method("ACK")) {
-		cache_add("local", "a=>method::ack", 1, 320);
+		update_stat("method::ack", "+1");
         }
         else {
-		cache_add("local", "a=>method::unknown", 1, 320);
-        }     
+		update_stat("method::unknown", "+1");
+        }
 
 	#Store
 	route(STORE);
@@ -194,102 +196,102 @@ route{
 
 onreply_route {
 
-	cache_add("local", "a=>method::total", 1, 320);
+	update_stat("method::total", "+1");
 
-	if(cache_fetch("local","b=>$rs::$cs::$rm::$ci",$var(tmpvar))) {
+	if(cache_fetch("local","msg:$rs::$cs::$rm::$ci",$var(tmpvar))) {
 		xlog("TEST: $var(tmpvar)\n");
 		route(STORE);
 		exit;
 	}
-	
-	cache_add("local", "b=>$rs::$cs::$rm::$ci", 1, 320);
-	cache_add("local", "a=>method::all", 1, 320);
+
+	cache_store("local", "msg:$rs::$cs::$rm::$ci", "yes", 320);
+	update_stat("method::all", "+1");
 
 	#413 Too large
-	if(status == "413") {	
-		cache_add("local", "a=>response::413", 1, 320);
-                cache_add("local", "a=>alarm::413", 1, 320);
+	if(status == "413") {
+		update_stat("response::413", "+1");
+                update_stat("alarm::413", "+1");
 	}
 	#403 Unauthorize
         else if(status == "403") {
-		cache_add("local", "a=>response::403", 1, 320);
-                cache_add("local", "a=>alarm::403", 1, 320);
+		update_stat("response::403", "+1");
+                update_stat("alarm::403", "+1");
         }
 	# Too many hops
-	else if(status == "483") {	
-		cache_add("local", "a=>response::483", 1, 320);
-                cache_add("local", "a=>alarm::483", 1, 320);
+	else if(status == "483") {
+		update_stat("response::483", "+1");
+                update_stat("alarm::483", "+1");
 	}
 	# loops
-	else if(status == "482") {	
-		cache_add("local", "a=>response::482", 1, 320);
-                cache_add("local", "a=>alarm::482", 1, 320);
+	else if(status == "482") {
+		update_stat("response::482", "+1");
+                update_stat("alarm::482", "+1");
 	}
 	# Call Transaction Does not exist
-	else if(status == "481") {	
-                cache_add("local", "a=>alarm::481", 1, 320);
+	else if(status == "481") {
+                update_stat("alarm::481", "+1");
 	}
 	# 408 Timeout
-	else if(status == "408") {	
-                cache_add("local", "a=>alarm::408", 1, 320);
+	else if(status == "408") {
+                update_stat("alarm::408", "+1");
 	}
 	# 400
-	else if(status == "400") {	
-                cache_add("local", "a=>alarm::400", 1, 320);
+	else if(status == "400") {
+                update_stat("alarm::400", "+1");
 	}
 	# MOVED
-	else if(status =~ "^(30[012])$") {	
-                cache_add("local", "a=>response::300", 1, 320);
+	else if(status =~ "^(30[012])$") {
+                update_stat("response::300", "+1");
 	}
 
 	if($rm == "INVITE") {
 		#ISA
-		if(status =~ "^(408|50[03])$") {	
-	                cache_add("local", "a=>stats::isa", 1, 320);
+		if(status =~ "^(408|50[03])$") {
+	                update_stat("stats::isa", "+1");
 		}
 		#Bad486
-		if(status =~ "^(486|487|603)$") {	
-	                cache_add("local", "a=>stats::bad::invite", 1, 320);
+		if(status =~ "^(486|487|603)$") {
+	                update_stat("stats::bad::invite", "+1");
 		}
 
 		#SD
-		if(status =~ "^(50[034])$") {	
-	                cache_add("local", "a=>stats::sd", 1, 320);
+		if(status =~ "^(50[034])$") {
+	                update_stat("stats::sd", "+1");
 		}
 
-		if(status == "407") {	
-	                cache_add("local", "a=>response::407::invite", 1, 320);
+		if(status == "407") {
+	                update_stat("response::407::invite", "+1");
 		}
-		else if(status == "401") {			
-	                cache_add("local", "a=>response::401::invite", 1, 320);
+		else if(status == "401") {
+	                update_stat("response::401::invite", "+1");
 		}
-		else if(status == "200") {			
-	                cache_add("local", "a=>response::200::invite", 1, 320);
+		else if(status == "200") {
+	                update_stat("response::200::invite", "+1");
 		}
 		#Aditional stats
 	        else if(status == "100") {
-	                cache_add("local", "a=>response::100::invite", 1, 320);
+	                update_stat("response::100::invite", "+1");
                 }
                 else if(status == "180") {
-	                cache_add("local", "a=>response::180::invite", 1, 320);
-                }   
-                else if(status == "183") {                      
-	                cache_add("local", "a=>response::183::invite", 1, 320);
+	                update_stat("response::180::invite", "+1");
+                }
+                else if(status == "183") {
+	                update_stat("response::183::invite", "+1");
                 }
 	}
 	else if($rm == "BYE") {
 
-		if(status == "407") {	
-	                cache_add("local", "a=>response::407::bye", 1, 320);
+		if(status == "407") {
+	                update_stat("response::407::bye", "+1");
 		}
-		else if(status == "401") {			
-	                cache_add("local", "a=>response::401::bye", 1, 320);
+		else if(status == "401") {
+	                update_stat("response::401::bye", "+1");
 		}
-		else if(status == "200") {			
-	                cache_add("local", "a=>response::200::bye", 1, 320);
+		else if(status == "200") {
+	                update_stat("response::200::bye", "+1");
 		}
 	}
-	
+
 	#Store
 	route(STORE);
 	drop;
@@ -306,7 +308,7 @@ timer_route[stats_alarms_update, 60] {
 
     #xlog("timer routine: time is $Ts\n");
     route(CHECK_ALARM);
-    #Check statistics 	 
+    #Check statistics
     route(CHECK_STATS);
 
 }
@@ -315,14 +317,14 @@ route[SEND_ALARM] {
    	exec('echo "Value: $var(thvalue), Type: $var(atype), Desc: $var(aname)" | mail -s "Homer Alarm $var(atype) - $var(thvalue)" $var(aemail) ') ;
 }
 
-route[CHECK_ALARM] 
+route[CHECK_ALARM]
 {
 
     #POPULATE ALARM THRESHOLDS
-    #Homer 5 sql schema    
+    #Homer 5 sql schema
     avp_db_query("SELECT type,value,name,notify,email FROM alarm_config WHERE NOW() between startdate AND stopdate AND active = 1", "$avp(type);$avp(value);$avp(name);$avp(notify);$avp(email)");
     $var(i) = 0;
-    while ( $(avp(type)[$var(i)]) != NULL ) 
+    while ( $(avp(type)[$var(i)]) != NULL )
     {
 	$var(atype) = $(avp(type)[$var(i)]);
         $var(avalue) = $(avp(value)[$var(i)]);
@@ -333,26 +335,26 @@ route[CHECK_ALARM]
 
 	$var(anotify) = $(var(anotify){s.int});
 
-	if(cache_fetch("local","a=>alarm::$var(atype)",$var(thvalue))) {
-
-                cache_remove("local","a=>alarm::var(atype)");
+	if($stat(alarm::$var(atype)) != NULL) {
+		$var(thvalue) = $stat(alarm::$var(atype));
+		$stat(alarm::$var(atype)) = 0;
 
                 #If Alarm - go here
                 if($var(thvalue) > $var(avalue)) {
-                                                  
+
                         avp_db_query("INSERT INTO alarm_data (create_date, type, total, description) VALUES(NOW(), '$var(aname)', $var(thvalue), '$var(aname) - $var(atype)');");
                         #Notify
                         if($var(anotify) == 1) {
                                 route(SEND_ALARM);
-                        }                         
+                        }
                 }
 
                 #Alarm for Scanner;
                 if($var(atype) == "scanner") {
                         avp_db_query("DELETE FROM alarm_data_mem WHERE type='scanner' AND total < $var(avalue)");
-                        if($var(anotify) == 1) 
+                        if($var(anotify) == 1)
                         {
-                                avp_db_query("SELECT * FROM alarm_data_mem WHERE type='scanner' AND total  >= $var(avalue) LIMIT 2", "$avp(as)");        
+                                avp_db_query("SELECT * FROM alarm_data_mem WHERE type='scanner' AND total  >= $var(avalue) LIMIT 2", "$avp(as)");
                                 if($(avp(as){s.int}) > 0) {
                                         route(SEND_ALARM);
                                 }
@@ -367,7 +369,7 @@ route[CHECK_ALARM]
 }
 
 
-route[CHECK_STATS] {	
+route[CHECK_STATS] {
 
 	#xlog("TIMER UPDATE\n");
 	#SQL STATS
@@ -405,64 +407,52 @@ route[CHECK_STATS] {
 
 	#INSERT SQL STATS
 	#Packet HEP stats
-	if(cache_fetch("local","a=>packet::count",$var(tmpvar))) {
-		cache_remove("local","a=>packet::count");
-        	avp_db_query("INSERT INTO stats_data (from_date, to_date, type, total) VALUES($var(f_date), $var(t_date), 'packet_count', $var(tmpvar)) ON DUPLICATE KEY UPDATE total=total+$var(tmpvar)");
+	if($stat(packet::count) != NULL && $stat(packet::count) != 0) {
+		$stat(packet::count) = 0;
+        	avp_db_query("INSERT INTO stats_data (from_date, to_date, type, total) VALUES($var(f_date), $var(t_date), 'packet_count', $stat(packet::count)) ON DUPLICATE KEY UPDATE total=total+$stat(packet::count)");
 	}
-	if(cache_fetch("local","a=>packet::size",$var(tmpvar))) {
-		cache_remove("local","a=>packet::size");
+	if(cache_fetch("local","packet::size",$var(tmpvar))) {
+		cache_remove("local","packet::size");
         	avp_db_query("INSERT INTO stats_data (from_date, to_date, type, total) VALUES($var(f_date), $var(t_date), 'packet_size', $var(tmpvar)) ON DUPLICATE KEY UPDATE total=total+$var(tmpvar)");
 	}
 	#SDF
-	if(cache_fetch("local","a=>stats::sdf",$var(tmpvar))) {
-                cache_remove("local","a=>stats::sdf");
-	        avp_db_query("INSERT INTO stats_data (from_date, to_date, type, total) VALUES($var(f_date), $var(t_date), 'sdf', $var(tmpvar)) ON DUPLICATE KEY UPDATE total=total+$var(tmpvar)");
+	if($stat(stats::sdf) != NULL && $stat(stats::sdf) != 0) {
+	        avp_db_query("INSERT INTO stats_data (from_date, to_date, type, total) VALUES($var(f_date), $var(t_date), 'sdf', $stat(stats::sdf)) ON DUPLICATE KEY UPDATE total=total+$stat(stats::sdf)");
+                $stat(stats::sdf) = 0;;
 	}
-	
+
 	#ISA
-	if(cache_fetch("local","a=>stats::isa",$var(tmpvar))) {
-                cache_remove("local","a=>stats::isa");
-		avp_db_query("INSERT INTO stats_data (from_date, to_date, type, total) VALUES($var(f_date), $var(t_date), 'isa', $var(tmpvar)) ON DUPLICATE KEY UPDATE total=total+$var(tmpvar)");
+	if($stat(stats::isa) != NULL && $stat(stats::isa) != 0) {
+		avp_db_query("INSERT INTO stats_data (from_date, to_date, type, total) VALUES($var(f_date), $var(t_date), 'isa', $stat(stats::isa)) ON DUPLICATE KEY UPDATE total=total+$stat(stats::isa)");
+                $stat(stats::isa) = 0;;
 	}
 
 	#SD
-	if(cache_fetch("local","a=>stats::sd",$var(tmpvar))) {
-                cache_remove("local","a=>stats::sd");
-        	avp_db_query("INSERT INTO stats_data (from_date, to_date, type, total) VALUES($var(f_date), $var(t_date), 'isa', $var(tmpvar)) ON DUPLICATE KEY UPDATE total=total+$var(tmpvar)");
+	if($stat(stats::sd) != NULL && $stat(stats::sd) != 0) {
+        	avp_db_query("INSERT INTO stats_data (from_date, to_date, type, total) VALUES($var(f_date), $var(t_date), 'isa', $stat(stats::sd)) ON DUPLICATE KEY UPDATE total=total+$stat(stats::sd)");
+                $stat(stats::sd) = 0;;
 	}
 
 	#SSR
-	if(cache_fetch("local","a=>stats::ssr",$var(tmpvar))) {
-                cache_remove("local","a=>stats::ssr");
-        	avp_db_query("INSERT INTO stats_data (from_date, to_date, type, total) VALUES($var(f_date), $var(t_date), 'ssr', $var(tmpvar)) ON DUPLICATE KEY UPDATE total=total+$var(tmpvar)");
+	if($stat(stats::ssr) != NULL && $stat(stats::ssr) != 0) {
+        	avp_db_query("INSERT INTO stats_data (from_date, to_date, type, total) VALUES($var(f_date), $var(t_date), 'ssr', $stat(stats::ssr)) ON DUPLICATE KEY UPDATE total=total+$stat(stats::ssr)");
+                $stat(stats::ssr) = 0;;
 	}
-
 
 	#ASR
 	$var(asr) = 0;
 	$var(ner) = 0;
-	if(cache_fetch("local","a=>method::invite",$var(invite)))
-	{
-		$var(invite) = $(var(invite){s.int});
+	if($stat(method::invite) != NULL && $stat(method::invite) > 0) {
+		if ($stat(response::407) == NULL) $stat(response::407) = 0;
+		if ($stat(response::200) == NULL) $stat(response::200) = 0;
+		if ($stat(response::bad) == NULL) $stat(response::bad) = 0;
 
-		if($var(invite) > 0) 
-		{
-			if(!cache_fetch("local","a=>response::407::invite",$var(invite407))) $var(invite407) = 0;
-			if(!cache_fetch("local","a=>response::200::invite",$var(invite200))) $var(invite200) = 0;
-			if(!cache_fetch("local","a=>response::bad::invite",$var(invitebad))) $var(invitebad) = 0;
-
-			$var(invite407) = $(var(invite407){s.int});
-			$var(invite200) = $(var(invite200){s.int});
-			$var(invitebad) = $(var(invitebad){s.int});
-
-
-        		$var(d) = $var(invite) - $var(invite407);
-		        if($var(d) > 0) {
-        		        $var(asr) =  $var(invite200) * 100 / $var(d);
-                		if($var(asr) > 100)  $var(asr) = 100;
-				$var(ner) = ($var(invite200) + $var(invitebad)) * 100 / $var(d);
-		                if($var(ner) > 100)  $var(ner) = 100;
-		        }
+		$var(d) = $stat(method::invite) - $stat(response::407);
+		if($var(d) > 0) {
+			$var(asr) =  $stat(response::200) * 100 / $var(d);
+			if($var(asr) > 100)  $var(asr) = 100;
+			$var(ner) = ($stat(response::200) + $stat(response::bad)) * 100 / $var(d);
+			if($var(ner) > 100)  $var(ner) = 100;
 		}
 	}
 
@@ -471,160 +461,160 @@ route[CHECK_STATS] {
 	avp_db_query("INSERT INTO stats_data (from_date, to_date, type, total) VALUES($var(f_date), $var(t_date), 'ner', $var(ner)) ON DUPLICATE KEY UPDATE total=(total+$var(ner))/2");
 
 	#INVITE
-	if(cache_fetch("local","a=>method::reinvite",$var(tmpvar))) {
-		cache_remove("local","a=>method::reinvite");
-	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, totag, total) VALUES($var(f_date), $var(t_date),'INVITE', 1, $var(tmpvar)) ON DUPLICATE KEY UPDATE total=total+$var(tmpvar)");
+	if($stat(method::reinvite) != NULL && $stat(method::reinvite) != 0) {
+	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, totag, total) VALUES($var(f_date), $var(t_date),'INVITE', 1, $stat(method::reinvite)) ON DUPLICATE KEY UPDATE total=total+$stat(method::reinvite)");
+		$stat(method::reinvite) = 0;
 	}
 
 	#INVITE
-	if(cache_fetch("local","a=>method::invite",$var(tmpvar))) {
-		cache_remove("local","a=>method::invite");
-	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, total) VALUES($var(f_date), $var(t_date), 'INVITE', $var(tmpvar)) ON DUPLICATE KEY UPDATE total=total+$var(tmpvar)");
+	if($stat(method::invite) != NULL && $stat(method::invite) != 0) {
+	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, total) VALUES($var(f_date), $var(t_date), 'INVITE', $stat(method::invite)) ON DUPLICATE KEY UPDATE total=total+$stat(method::invite)");
+		$stat(method::invite) = 0;
 	}
 
 	#INVITE AUTH
-	if(cache_fetch("local","a=>method::invite::auth",$var(tmpvar))) {
-		cache_remove("local","a=>method::invite::auth");
-	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, auth, total) VALUES($var(f_date), $var(t_date), 'INVITE', 1, $var(tmpvar)) ON DUPLICATE KEY UPDATE total=total+$var(tmpvar)");
+	if($stat(method::invite::auth) != NULL && $stat(method::invite::auth) != 0) {
+	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, auth, total) VALUES($var(f_date), $var(t_date), 'INVITE', 1, $stat(method::invite::auth)) ON DUPLICATE KEY UPDATE total=total+$stat(method::invite::auth)");
+		$stat(method::invite::auth) = 0;
 	}
 
 	#REGISTER
-	if(cache_fetch("local","a=>method::register",$var(tmpvar))) {
-		cache_remove("local","a=>method::register");
-	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, total) VALUES($var(f_date), $var(t_date), 'REGISTER', $var(tmpvar)) ON DUPLICATE KEY UPDATE total=total+$var(tmpvar)");
-	}	
+	if($stat(method::register) != NULL && $stat(method::register) != 0) {
+	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, total) VALUES($var(f_date), $var(t_date), 'REGISTER', $stat(method::register)) ON DUPLICATE KEY UPDATE total=total+$stat(method::register)");
+		$stat(method::register) = 0;
+	}
 
 	#REGISTER AUTH
-	if(cache_fetch("local","a=>method::register::auth",$var(tmpvar))) {
-		cache_remove("local","a=>method::register::auth");
-	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, auth, total) VALUES($var(f_date), $var(t_date), 'REGISTER', 1, $var(tmpvar)) ON DUPLICATE KEY UPDATE total=total+$var(tmpvar)");
-	}	
+	if($stat(method::register::auth) != NULL && $stat(method::register::auth) != 0) {
+	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, auth, total) VALUES($var(f_date), $var(t_date), 'REGISTER', 1, $stat(method::register::auth)) ON DUPLICATE KEY UPDATE total=total+$stat(method::register::auth)");
+		$stat(method::register::auth) = 0;
+	}
 
 	#BYE
-	if(cache_fetch("local","a=>method::bye",$var(tmpvar))) {
-		cache_remove("local","a=>method::bye");
-	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, total) VALUES($var(f_date), $var(t_date), 'BYE', $var(tmpvar)) ON DUPLICATE KEY UPDATE total=total+$var(tmpvar)");
+	if($stat(method::bye) != NULL && $stat(method::bye) != 0) {
+	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, total) VALUES($var(f_date), $var(t_date), 'BYE', $stat(method::bye)) ON DUPLICATE KEY UPDATE total=total+$stat(method::bye)");
+		$stat(method::bye) = 0;
 	}
 
 	#CANCEL
-	if(cache_fetch("local","a=>method::cancel",$var(tmpvar))) {
-		cache_remove("local","a=>method::cancel");
-	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, total) VALUES($var(f_date), $var(t_date), 'CANCEL', $var(tmpvar)) ON DUPLICATE KEY UPDATE total=total+$var(tmpvar)");
+	if($stat(method::cancel) != NULL && $stat(method::cancel) != 0) {
+	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, total) VALUES($var(f_date), $var(t_date), 'CANCEL', $stat(method::cancel)) ON DUPLICATE KEY UPDATE total=total+$stat(method::cancel)");
+		$stat(method::bye) = 0;
 	}
 
 	#OPTIONS
-	if(cache_fetch("local","a=>method::options",$var(tmpvar))) {
-		cache_remove("local","a=>method::options");
-	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, total) VALUES($var(f_date), $var(t_date), 'OPTIONS', $var(tmpvar)) ON DUPLICATE KEY UPDATE total=total+$var(tmpvar)");
+	if($stat(method::options) != NULL && $stat(method::options) != 0) {
+	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, total) VALUES($var(f_date), $var(t_date), 'OPTIONS', $stat(method::options)) ON DUPLICATE KEY UPDATE total=total+$stat(method::options)");
+		$stat(method::options) = 0;
 	}
 
-	if(cache_fetch("local","a=>method::unknown",$var(tmpvar))) {
-		cache_remove("local","a=>method::unknown");
-	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, total) VALUES($var(f_date), $var(t_date), 'UNKNOWN', $var(tmpvar)) ON DUPLICATE KEY UPDATE total=total+$var(tmpvar)");
+	if($stat(method::unknown) != NULL && $stat(method::unknown) != 0) {
+	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, total) VALUES($var(f_date), $var(t_date), 'UNKNOWN', $stat(method::unknown)) ON DUPLICATE KEY UPDATE total=total+$stat(method::unknown)");
+		$stat(method::unknown) = 0;
 	}
-    
+
 	#ACK
-	if(cache_fetch("local","a=>method::ack",$var(tmpvar))) {
-		cache_remove("local","a=>method::ack");
-	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, total) VALUES($var(f_date), $var(t_date), 'ACK', $var(tmpvar)) ON DUPLICATE KEY UPDATE total=total+$var(tmpvar)");
-	}	
+	if($stat(method::ack) != NULL && $stat(method::ack) != 0) {
+	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, total) VALUES($var(f_date), $var(t_date), 'ACK', $stat(method::ack)) ON DUPLICATE KEY UPDATE total=total+$stat(method::ack)");
+		$stat(method::ack) = 0;
+	}
 
 	#REFER
-	if(cache_fetch("local","a=>method::refer",$var(tmpvar))) {
-		cache_remove("local","a=>method::refer");
-        	avp_db_query("INSERT INTO stats_method (from_date, to_date, method, total) VALUES($var(f_date), $var(t_date), 'REFER', $var(tmpvar)) ON DUPLICATE KEY UPDATE total=total+$var(tmpvar)");
+	if($stat(method::refer) != NULL && $stat(method::refer) != 0) {
+        	avp_db_query("INSERT INTO stats_method (from_date, to_date, method, total) VALUES($var(f_date), $var(t_date), 'REFER', $stat(method::refer)) ON DUPLICATE KEY UPDATE total=total+$stat(method::refer)");
+		$stat(method::refer) = 0;
 	}
 
 	#UPDATE
-	if(cache_fetch("local","a=>method::update",$var(tmpvar))) {
-		cache_remove("local","a=>method::update");
-	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, total) VALUES($var(f_date), $var(t_date), 'UPDATE', $var(tmpvar)) ON DUPLICATE KEY UPDATE total=total+$var(tmpvar)");
+	if($stat(method::update) != NULL && $stat(method::update) != 0) {
+	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, total) VALUES($var(f_date), $var(t_date), 'UPDATE', $stat(method::update)) ON DUPLICATE KEY UPDATE total=total+$stat(method::update)");
+		$stat(method::update) = 0;
 	}
 
 	#RESPONSE
 	#300
-	if(cache_fetch("local","a=>response::300",$var(tmpvar))) {
-		cache_remove("local","a=>response::300");
-	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, total) VALUES($var(f_date), $var(t_date), '300', $var(tmpvar)) ON DUPLICATE KEY UPDATE total=total+$var(tmpvar)");
+	if($stat(response::300) != NULL && $stat(response::300) != 0) {
+	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, total) VALUES($var(f_date), $var(t_date), '300', $stat(response::300)) ON DUPLICATE KEY UPDATE total=total+$stat(response::300)");
+		$stat(response::300) = 0;
 	}
 
 	#407 INVITE
-	if(cache_fetch("local","a=>response::407::invite",$var(tmpvar))) {
-		cache_remove("local","a=>response::407::invite");
-	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, cseq, total) VALUES($var(f_date), $var(t_date), '407', 'INVITE', $var(tmpvar)) ON DUPLICATE KEY UPDATE total=total+$var(tmpvar)");
+	if($stat(response::407::invite) != NULL && $stat(response::407::invite) != 0) {
+	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, cseq, total) VALUES($var(f_date), $var(t_date), '407', 'INVITE', $stat(response::407::invite)) ON DUPLICATE KEY UPDATE total=total+$stat(response::407::invite)");
+		$stat(response::407::invite) = 0;
 	}
 
 	#401 INVITE
-	if(cache_fetch("local","a=>response::401::invite",$var(tmpvar))) {
-		cache_remove("local","a=>response::401::invite");
-	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, cseq, total) VALUES($var(f_date), $var(t_date), '401', 'INVITE', $var(tmpvar)) ON DUPLICATE KEY UPDATE total=total+$var(tmpvar)");
+	if($stat(response::401::invite) != NULL && $stat(response::401::invite) != 0) {
+	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, cseq, total) VALUES($var(f_date), $var(t_date), '401', 'INVITE', $stat(response::401::invite)) ON DUPLICATE KEY UPDATE total=total+$stat(response::401::invite)");
+		$stat(response::401::invite) = 0;
 	}
 
 	#100 INVITE
-	if(cache_fetch("local","a=>response::100::invite",$var(tmpvar))) {
-		cache_remove("local","a=>response::100::invite");
-	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, cseq, total) VALUES($var(f_date), $var(t_date), '100', 'INVITE', $var(tmpvar)) ON DUPLICATE KEY UPDATE total=total+$var(tmpvar)");
-	}	
+	if($stat(response::100::invite) != NULL && $stat(response::100::invite) != 0) {
+	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, cseq, total) VALUES($var(f_date), $var(t_date), '100', 'INVITE', $stat(response::100::invite)) ON DUPLICATE KEY UPDATE total=total+$stat(response::100::invite)");
+		$stat(response::100::invite) = 0;
+	}
 
 	#180 INVITE
-	if(cache_fetch("local","a=>response::401::invite",$var(tmpvar))) {
-		cache_remove("local","a=>response::401::invite");
-	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, cseq, total) VALUES($var(f_date), $var(t_date), '180', 'INVITE', $var(tmpvar)) ON DUPLICATE KEY UPDATE total=total+$var(tmpvar)");
+	if($stat(response::180::invite) != NULL && $stat(response::180::invite) != 0) {
+	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, cseq, total) VALUES($var(f_date), $var(t_date), '180', 'INVITE', $stat(response::180::invite)) ON DUPLICATE KEY UPDATE total=total+$stat(response::180::invite)");
+		$stat(response::180::invite) = 0;
 	}
 
 	#183 INVITE
-	if(cache_fetch("local","a=>response::183::invite",$var(tmpvar))) {
-		cache_remove("local","a=>response::183::invite");
-	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, cseq, total) VALUES($var(f_date), $var(t_date), '183', 'INVITE', $var(tmpvar)) ON DUPLICATE KEY UPDATE total=total+$var(tmpvar)");
+	if($stat(response::183::invite) != NULL && $stat(response::183::invite) != 0) {
+	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, cseq, total) VALUES($var(f_date), $var(t_date), '183', 'INVITE', $stat(response::183::invite)) ON DUPLICATE KEY UPDATE total=total+$stat(response::183::invite)");
+		$stat(response::183::invite) = 0;
 	}
 
 	#200 INVITE
-	if(cache_fetch("local","a=>response::200::invite",$var(tmpvar))) {
-		cache_remove("local","a=>response::200::invite");
-	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, cseq, total) VALUES($var(f_date), $var(t_date), '200', 'INVITE', $var(tmpvar)) ON DUPLICATE KEY UPDATE total=total+$var(tmpvar)");
+	if($stat(response::200::invite) != NULL && $stat(response::200::invite) != 0) {
+	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, cseq, total) VALUES($var(f_date), $var(t_date), '200', 'INVITE', $stat(response::200::invite)) ON DUPLICATE KEY UPDATE total=total+$stat(response::200::invite)");
+		$stat(response::200::invite) = 0;
 	}
 
 	#407 BYE
-	if(cache_fetch("local","a=>response::407::bye",$var(tmpvar))) {
-		cache_remove("local","a=>response::407::bye");
-	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, cseq, total) VALUES($var(f_date), $var(t_date), '407', 'BYE', $var(tmpvar)) ON DUPLICATE KEY UPDATE total=total+$var(tmpvar)");
+	if($stat(response::407::bye) != NULL && $stat(response::407::bye) != 0) {
+	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, cseq, total) VALUES($var(f_date), $var(t_date), '407', 'BYE', $stat(response::407::bye)) ON DUPLICATE KEY UPDATE total=total+$stat(response::407::bye)");
+		$stat(response::407::bye) = 0;
 	}
 
 	#401 BYE
-	if(cache_fetch("local","a=>response::401::bye",$var(tmpvar))) {
-		cache_remove("local","a=>response::401::bye");
-        	avp_db_query("INSERT INTO stats_method (from_date, to_date, method, cseq, total) VALUES($var(f_date), $var(t_date), '401', 'BYE', $var(tmpvar)) ON DUPLICATE KEY UPDATE total=total+$var(tmpvar)");
+	if($stat(response::401::bye) != NULL && $stat(response::401::bye) != 0) {
+        	avp_db_query("INSERT INTO stats_method (from_date, to_date, method, cseq, total) VALUES($var(f_date), $var(t_date), '401', 'BYE', $stat(response::401::bye)) ON DUPLICATE KEY UPDATE total=total+$stat(response::401::bye)");
+		$stat(response::401::bye) = 0;
 	}
 
 	#200 BYE
-	if(cache_fetch("local","a=>response::200::bye",$var(tmpvar))) {
-		cache_remove("local","a=>response::200::bye");
-	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, cseq, total) VALUES($var(f_date), $var(t_date), '200', 'BYE', $var(tmpvar)) ON DUPLICATE KEY UPDATE total=total+$var(tmpvar)");
+	if($stat(response::200::bye) != NULL && $stat(response::200::bye) != 0) {
+	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, cseq, total) VALUES($var(f_date), $var(t_date), '200', 'BYE', $stat(response::200::bye)) ON DUPLICATE KEY UPDATE total=total+$stat(response::200::bye)");
+		$stat(response::200::bye) = 0;
 	}
 
 	#ALL TRANSACTIONS MESSAGES
-	if(cache_fetch("local","a=>method::all",$var(tmpvar))) {
-		cache_remove("local","a=>method::all");
-	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, total) VALUES($var(f_date), $var(t_date), 'ALL', $var(tmpvar)) ON DUPLICATE KEY UPDATE total=total+$var(tmpvar)");
-	}	
-    
+	if($stat(method::all) != NULL && $stat(method::all) != 0) {
+	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, total) VALUES($var(f_date), $var(t_date), 'ALL', $stat(method::all)) ON DUPLICATE KEY UPDATE total=total+$stat(method::all)");
+		$stat(method::all) = 0;
+	}
+
 	#ALL MESSAGES ON INTERFACE
-	if(cache_fetch("local","a=>method::total",$var(tmpvar))) {
-		cache_remove("local","a=>method::total");
-	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, total) VALUES($var(f_date), $var(t_date), 'TOTAL', $var(tmpvar)) ON DUPLICATE KEY UPDATE total=total+$var(tmpvar)");
-	}    
+	if($stat(method::total) != NULL && $stat(method::total) != 0) {
+	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, total) VALUES($var(f_date), $var(t_date), 'TOTAL', $stat(method::total)) ON DUPLICATE KEY UPDATE total=total+$stat(method::total)");
+		$stat(method::total) = 0;
+	}
 }
 
 
 route[STORE] {
 
         if($rm == "REGISTER") {
-                $var(table) = "sip_capture_registration";       
+                $var(table) = "sip_capture_registration";
         }
         else if($rm =~ "(INVITE|UPDATE|BYE|ACK|PRACK|REFER|CANCEL)$")
         {
                 $var(table) = "sip_capture_call";
-        } 
+        }
         else if($rm =~ "(NOTIFY)$" && is_present_hf("Event") && $hdr(Event)=~"refer;")
         {
                 $var(table) = "sip_capture_call";
@@ -637,12 +627,12 @@ route[STORE] {
         {
             $var(table) = "sip_capture_rest";
         }
-        else {   
+        else {
             $var(table) = "sip_capture_rest";
         }
-	
+
 	#$var(utc) = "%Y%m%d";
-	
+
 	if($var(table) == "sip_capture_call") sip_capture("sip_capture_call_%Y%m%d");
 	else if($var(table) == "sip_capture_registration") sip_capture("sip_capture_registration_%Y%m%d");
 	else sip_capture("sip_capture_rest_%Y%m%d");
@@ -670,5 +660,5 @@ route[my_hep_route] {
 	}
 
 	hep_resume_sip();
-	
+
 }
