@@ -67,6 +67,6 @@ Homer5 Docker parameters:
 ```
 git clone https://github.com/qxip/homer-docker-opensips; cd homer-docker-opensips
 docker build --tag="qxip/homer-docker-opensips:local" .
-docker run -t -i qxip/homer-docker-opensips:local --name homer5
+docker run -tid --name homer5 qxip/homer-docker-opensips:local
 docker exec -it homer5 bash
 ```

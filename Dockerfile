@@ -60,8 +60,8 @@ RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 049AD65B
 RUN echo "deb http://apt.opensips.org jessie 2.2-releases" >>/etc/apt/sources.list
 RUN apt-get update -qq && apt-get install -f -yqq rsyslog opensips opensips-geoip-module opensips-json-module opensips-mysql-module opensips-regex-module opensips-restclient-module  && rm -rf /var/lib/apt/lists/*
 
-COPY data/opensips.cfg /etc/opensips/opensips.cfg
-RUN chmod 775 /etc/opensips/opensips.cfg
+COPY data/opensips.m4 /etc/opensips/opensips.m4
+RUN chmod 775 /etc/opensips/opensips.m4
 
 RUN ln -s /usr/lib64 /usr/lib/x86_64-linux-gnu/
 
@@ -87,8 +87,5 @@ VOLUME ["/etc/mysql", "/var/lib/mysql", "/var/www/html/store"]
 EXPOSE 80
 # HEP
 EXPOSE 9060
-# MySQL
-#EXPOSE 3306
-
 
 ENTRYPOINT ["/run.sh"]

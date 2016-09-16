@@ -165,13 +165,19 @@ if [ "$DB_HOST" == "$DOCK_IP" ]; then
 fi
 
 # OPENSIPS CONFIG
+PATH_OPENSIPS_M4=/etc/opensips/opensips.m4
 export PATH_OPENSIPS_CFG=/etc/opensips/opensips.cfg
-
-# Replace values in template
-perl -p -i -e "s/\{\{ LISTEN_PORT \}\}/$LISTEN_PORT/" $PATH_OPENSIPS_CFG
-perl -p -i -e "s/\{\{ DB_PASS \}\}/$DB_PASS/" $PATH_OPENSIPS_CFG
-perl -p -i -e "s/\{\{ DB_HOST \}\}/$DB_HOST/" $PATH_OPENSIPS_CFG
-perl -p -i -e "s/\{\{ DB_USER \}\}/$DB_USER/" $PATH_OPENSIPS_CFG
+if [ -e "$PATH_OPENSIPS_M4" ]; then
+    # OpenSIPS not initialized yet - doing it now
+    m4 -D LISTEN_PORT=$LISTEN_PORT \
+        -D DB_PASS=$DB_PASS \
+        -D DB_HOST=$DB_HOST \
+        -D DB_USER=$DB_USER \
+        $PATH_OPENSIPS_M4 > $PATH_OPENSIPS_CFG
+    # now that it is initialized, remove the m4 file
+    rm -f $PATH_OPENSIPS_M4
+    chmod 775 $PATH_OPENSIPS_CFG
+fi
 
 # Make an alias, kinda.
 opensips=$(which opensips)
