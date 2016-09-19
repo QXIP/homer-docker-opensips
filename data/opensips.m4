@@ -11,6 +11,7 @@ log_facility=LOG_LOCAL0
 children=4
 
 listen=hep_udp:0.0.0.0:LISTEN_PORT
+listen=hep_tcp:0.0.0.0:LISTEN_PORT
 
 
 ### CHANGEME path to your opensips modules here
