@@ -6,7 +6,8 @@
 DB_USER=homer_user
 DB_PASS=homer_password
 DB_HOST="127.0.0.1"
-LISTEN_PORT=9060
+DEFAULT_ES_URL="http://localhost:9200"
+LISTEN_PORT=${LISTEN_PORT:-9060}
 
 # HOMER MySQL Options, defaults
 sqluser=root
@@ -14,6 +15,7 @@ sqlpassword=secret
 
 # Container
 DOCK_IP="127.0.0.1"
+ES_STATUS=disabled
 
 show_help() {
 cat << EOF
@@ -24,7 +26,9 @@ Homer5 Docker parameters:
     --dbuser -u             MySQL user (homer_user)
     --dbhost -h             MySQL host (127.0.0.1 [docker0 bridge])
     --mypass -P             MySQL root local password (secret)
-    --hep    -H             OpenSIPS HEP Socket port (9060)
+    --es     -E             Enable ElasticSearch statistics storage (disabled)
+    --es-url -U             ElasticSearch URL ($DEFAULT_ES_URL)
+    --hep    -H             OpenSIPS HEP Socket port ($LISTEN_PORT)
 
 EOF
 exit 0;
@@ -58,13 +62,30 @@ while true; do
       LISTEN_PORT=$2;
       echo "HEP Port set to: $LISTEN_PORT";
       shift 2 ;;
+    -E | --es )
+      ES_STATUS=enabled
+      echo "ElasticSearch Enabled";
+      shift ;;
+    -U | --es-url )
+      if [ "$2" == "" ]; then show_help; fi;
+      ES_URL=$2;
+      echo "ElasticSearch URL set to: $ES_URL";
+      shift 2 ;;
     --help )
-       	show_help;
-       	exit 0 ;;
+      show_help;
+      exit 0 ;;
     -- ) shift; break ;;
     * ) break ;;
   esac
 done
+
+if [ -n "$ES_URL" ]; then
+    ES_STATUS=enabled
+    echo "INFO: ElasticSearch Enabled by setting URL"
+elif [ "$ES_STATUS" = "enabled" ]; then
+    ES_URL=$DEFAULT_ES_URL
+    echo "INFO: Using default ElasticSearch URL: $ES_URL"
+fi
 
 # HOMER API CONFIG
 PATH_HOMER_CONFIG=/var/www/html/api/configuration.php
@@ -166,17 +187,41 @@ fi
 
 # OPENSIPS CONFIG
 PATH_OPENSIPS_M4=/etc/opensips/opensips.m4
-export PATH_OPENSIPS_CFG=/etc/opensips/opensips.cfg
-if [ -e "$PATH_OPENSIPS_M4" ]; then
+PATH_OPENSIPS_CFG=/etc/opensips/opensips.cfg
+if ! [ -e "$PATH_OPENSIPS_CFG" ]; then
     # OpenSIPS not initialized yet - doing it now
     m4 -D LISTEN_PORT=$LISTEN_PORT \
         -D DB_PASS=$DB_PASS \
         -D DB_HOST=$DB_HOST \
         -D DB_USER=$DB_USER \
-        $PATH_OPENSIPS_M4 > $PATH_OPENSIPS_CFG
-    # now that it is initialized, remove the m4 file
-    rm -f $PATH_OPENSIPS_M4
-    chmod 775 $PATH_OPENSIPS_CFG
+        $PATH_OPENSIPS_M4 > $PATH_OPENSIPS_CFG.template
+    chmod 775 $PATH_OPENSIPS_CFG.template
+fi
+
+PATH_OPENSIPS_ES_M4=/etc/opensips/opensips-es.m4
+PATH_OPENSIPS_ES_CFG=/etc/opensips/opensips-es.cfg
+if ! [ -e "$PATH_OPENSIPS_ES_CFG" ]; then
+    # OpenSIPS not initialized yet - doing it now
+    m4 -D LISTEN_PORT=$LISTEN_PORT \
+        -D DB_PASS=$DB_PASS \
+        -D DB_HOST=$DB_HOST \
+        -D DB_USER=$DB_USER \
+        -D ES_URL=${ES_URL:-$DEFAULT_ES_URL} \
+        $PATH_OPENSIPS_ES_M4 > $PATH_OPENSIPS_ES_CFG.template
+    chmod 775 $PATH_OPENSIPS_ES_CFG.template
+fi
+
+# Push ES Template for HOMER Data
+HOMER_TEMPLATE="/etc/homer-es-template.json"
+if [ $ES_STATUS = "enabled" ]; then
+	[ -e "$HOMER_TEMPLATE" ] && \
+		curl -XPUT "$ES_URL/_template/homer_template" \
+			--data $HOMER_TEMPLATE
+	[ -e "$PATH_OPENSIPS_CFG" ] || \
+		cp $PATH_OPENSIPS_ES_CFG.template $PATH_OPENSIPS_CFG
+else
+	[ -e "$PATH_OPENSIPS_CFG" ] || \
+		cp $PATH_OPENSIPS_CFG.template $PATH_OPENSIPS_CFG
 fi
 
 # Make an alias, kinda.

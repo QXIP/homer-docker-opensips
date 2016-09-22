@@ -9,7 +9,7 @@ ENV DEBIAN_FRONTEND noninteractive
 # Update and upgrade apt
 RUN apt-get update -qq
 # RUN apt-get upgrade -y
-RUN apt-get install --no-install-recommends --no-install-suggests -yqq ca-certificates apache2 libapache2-mod-php5 php5 php5-cli php5-gd php-pear php5-dev php5-mysql php5-json php-services-json git wget pwgen && rm -rf /var/lib/apt/lists/*
+RUN apt-get install --no-install-recommends --no-install-suggests -yqq ca-certificates apache2 libapache2-mod-php5 php5 php5-cli php5-gd php-pear php5-dev php5-mysql php5-json php-services-json git wget pwgen curl && rm -rf /var/lib/apt/lists/*
 RUN a2enmod php5
 
 # MySQL
@@ -60,8 +60,11 @@ RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 049AD65B
 RUN echo "deb http://apt.opensips.org jessie 2.2-releases" >>/etc/apt/sources.list
 RUN apt-get update -qq && apt-get install -f -yqq rsyslog opensips opensips-geoip-module opensips-json-module opensips-mysql-module opensips-regex-module opensips-restclient-module  && rm -rf /var/lib/apt/lists/*
 
+RUN rm /etc/opensips/opensips.cfg
 COPY data/opensips.m4 /etc/opensips/opensips.m4
 RUN chmod 775 /etc/opensips/opensips.m4
+COPY data/opensips-es.m4 /etc/opensips/opensips-es.m4
+RUN chmod 775 /etc/opensips/opensips-es.m4
 
 RUN ln -s /usr/lib64 /usr/lib/x86_64-linux-gnu/
 
@@ -79,6 +82,8 @@ RUN echo "local0.* -/var/log/opensips.log" > /etc/rsyslog.d/opensips.conf
 
 COPY run.sh /run.sh
 RUN chmod a+rx /run.sh
+
+COPY data/homer-es-template.json /etc/homer-es-template.json
 
 # Add persistent MySQL volumes
 VOLUME ["/etc/mysql", "/var/lib/mysql", "/var/www/html/store"]
