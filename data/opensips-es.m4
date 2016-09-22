@@ -35,7 +35,7 @@ loadmodule "mmgeoip.so"
 loadmodule "exec.so"
 loadmodule "json.so"
 loadmodule "statistics.so"
-loadmodule "rest_cliene.so"
+loadmodule "rest_client.so"
 
 #settings
 
