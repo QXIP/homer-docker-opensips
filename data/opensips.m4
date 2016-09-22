@@ -409,35 +409,35 @@ route[CHECK_STATS] {
 	#INSERT SQL STATS
 	#Packet HEP stats
 	if($stat(packet::count) != NULL && $stat(packet::count) != 0) {
+		avp_db_query("INSERT INTO stats_data (from_date, to_date, type, total) VALUES($var(f_date), $var(t_date), 'packet_count', $stat(packet::count)) ON DUPLICATE KEY UPDATE total=total+$stat(packet::count)");
 		$stat(packet::count) = 0;
-        	avp_db_query("INSERT INTO stats_data (from_date, to_date, type, total) VALUES($var(f_date), $var(t_date), 'packet_count', $stat(packet::count)) ON DUPLICATE KEY UPDATE total=total+$stat(packet::count)");
 	}
 	if(cache_fetch("local","packet::size",$var(tmpvar))) {
 		cache_remove("local","packet::size");
-        	avp_db_query("INSERT INTO stats_data (from_date, to_date, type, total) VALUES($var(f_date), $var(t_date), 'packet_size', $var(tmpvar)) ON DUPLICATE KEY UPDATE total=total+$var(tmpvar)");
+		avp_db_query("INSERT INTO stats_data (from_date, to_date, type, total) VALUES($var(f_date), $var(t_date), 'packet_size', $var(tmpvar)) ON DUPLICATE KEY UPDATE total=total+$var(tmpvar)");
 	}
 	#SDF
 	if($stat(stats::sdf) != NULL && $stat(stats::sdf) != 0) {
-	        avp_db_query("INSERT INTO stats_data (from_date, to_date, type, total) VALUES($var(f_date), $var(t_date), 'sdf', $stat(stats::sdf)) ON DUPLICATE KEY UPDATE total=total+$stat(stats::sdf)");
-                $stat(stats::sdf) = 0;;
+		avp_db_query("INSERT INTO stats_data (from_date, to_date, type, total) VALUES($var(f_date), $var(t_date), 'sdf', $stat(stats::sdf)) ON DUPLICATE KEY UPDATE total=total+$stat(stats::sdf)");
+		$stat(stats::sdf) = 0;;
 	}
 
 	#ISA
 	if($stat(stats::isa) != NULL && $stat(stats::isa) != 0) {
 		avp_db_query("INSERT INTO stats_data (from_date, to_date, type, total) VALUES($var(f_date), $var(t_date), 'isa', $stat(stats::isa)) ON DUPLICATE KEY UPDATE total=total+$stat(stats::isa)");
-                $stat(stats::isa) = 0;;
+		$stat(stats::isa) = 0;;
 	}
 
 	#SD
 	if($stat(stats::sd) != NULL && $stat(stats::sd) != 0) {
-        	avp_db_query("INSERT INTO stats_data (from_date, to_date, type, total) VALUES($var(f_date), $var(t_date), 'isa', $stat(stats::sd)) ON DUPLICATE KEY UPDATE total=total+$stat(stats::sd)");
-                $stat(stats::sd) = 0;;
+		avp_db_query("INSERT INTO stats_data (from_date, to_date, type, total) VALUES($var(f_date), $var(t_date), 'isa', $stat(stats::sd)) ON DUPLICATE KEY UPDATE total=total+$stat(stats::sd)");
+		$stat(stats::sd) = 0;;
 	}
 
 	#SSR
 	if($stat(stats::ssr) != NULL && $stat(stats::ssr) != 0) {
-        	avp_db_query("INSERT INTO stats_data (from_date, to_date, type, total) VALUES($var(f_date), $var(t_date), 'ssr', $stat(stats::ssr)) ON DUPLICATE KEY UPDATE total=total+$stat(stats::ssr)");
-                $stat(stats::ssr) = 0;;
+		avp_db_query("INSERT INTO stats_data (from_date, to_date, type, total) VALUES($var(f_date), $var(t_date), 'ssr', $stat(stats::ssr)) ON DUPLICATE KEY UPDATE total=total+$stat(stats::ssr)");
+		$stat(stats::ssr) = 0;;
 	}
 
 	#ASR
@@ -463,145 +463,145 @@ route[CHECK_STATS] {
 
 	#INVITE
 	if($stat(method::reinvite) != NULL && $stat(method::reinvite) != 0) {
-	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, totag, total) VALUES($var(f_date), $var(t_date),'INVITE', 1, $stat(method::reinvite)) ON DUPLICATE KEY UPDATE total=total+$stat(method::reinvite)");
+		avp_db_query("INSERT INTO stats_method (from_date, to_date, method, totag, total) VALUES($var(f_date), $var(t_date),'INVITE', 1, $stat(method::reinvite)) ON DUPLICATE KEY UPDATE total=total+$stat(method::reinvite)");
 		$stat(method::reinvite) = 0;
 	}
 
 	#INVITE
 	if($stat(method::invite) != NULL && $stat(method::invite) != 0) {
-	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, total) VALUES($var(f_date), $var(t_date), 'INVITE', $stat(method::invite)) ON DUPLICATE KEY UPDATE total=total+$stat(method::invite)");
+		avp_db_query("INSERT INTO stats_method (from_date, to_date, method, total) VALUES($var(f_date), $var(t_date), 'INVITE', $stat(method::invite)) ON DUPLICATE KEY UPDATE total=total+$stat(method::invite)");
 		$stat(method::invite) = 0;
 	}
 
 	#INVITE AUTH
 	if($stat(method::invite::auth) != NULL && $stat(method::invite::auth) != 0) {
-	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, auth, total) VALUES($var(f_date), $var(t_date), 'INVITE', 1, $stat(method::invite::auth)) ON DUPLICATE KEY UPDATE total=total+$stat(method::invite::auth)");
+		avp_db_query("INSERT INTO stats_method (from_date, to_date, method, auth, total) VALUES($var(f_date), $var(t_date), 'INVITE', 1, $stat(method::invite::auth)) ON DUPLICATE KEY UPDATE total=total+$stat(method::invite::auth)");
 		$stat(method::invite::auth) = 0;
 	}
 
 	#REGISTER
 	if($stat(method::register) != NULL && $stat(method::register) != 0) {
-	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, total) VALUES($var(f_date), $var(t_date), 'REGISTER', $stat(method::register)) ON DUPLICATE KEY UPDATE total=total+$stat(method::register)");
+		avp_db_query("INSERT INTO stats_method (from_date, to_date, method, total) VALUES($var(f_date), $var(t_date), 'REGISTER', $stat(method::register)) ON DUPLICATE KEY UPDATE total=total+$stat(method::register)");
 		$stat(method::register) = 0;
 	}
 
 	#REGISTER AUTH
 	if($stat(method::register::auth) != NULL && $stat(method::register::auth) != 0) {
-	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, auth, total) VALUES($var(f_date), $var(t_date), 'REGISTER', 1, $stat(method::register::auth)) ON DUPLICATE KEY UPDATE total=total+$stat(method::register::auth)");
+		avp_db_query("INSERT INTO stats_method (from_date, to_date, method, auth, total) VALUES($var(f_date), $var(t_date), 'REGISTER', 1, $stat(method::register::auth)) ON DUPLICATE KEY UPDATE total=total+$stat(method::register::auth)");
 		$stat(method::register::auth) = 0;
 	}
 
 	#BYE
 	if($stat(method::bye) != NULL && $stat(method::bye) != 0) {
-	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, total) VALUES($var(f_date), $var(t_date), 'BYE', $stat(method::bye)) ON DUPLICATE KEY UPDATE total=total+$stat(method::bye)");
+		avp_db_query("INSERT INTO stats_method (from_date, to_date, method, total) VALUES($var(f_date), $var(t_date), 'BYE', $stat(method::bye)) ON DUPLICATE KEY UPDATE total=total+$stat(method::bye)");
 		$stat(method::bye) = 0;
 	}
 
 	#CANCEL
 	if($stat(method::cancel) != NULL && $stat(method::cancel) != 0) {
-	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, total) VALUES($var(f_date), $var(t_date), 'CANCEL', $stat(method::cancel)) ON DUPLICATE KEY UPDATE total=total+$stat(method::cancel)");
+		avp_db_query("INSERT INTO stats_method (from_date, to_date, method, total) VALUES($var(f_date), $var(t_date), 'CANCEL', $stat(method::cancel)) ON DUPLICATE KEY UPDATE total=total+$stat(method::cancel)");
 		$stat(method::bye) = 0;
 	}
 
 	#OPTIONS
 	if($stat(method::options) != NULL && $stat(method::options) != 0) {
-	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, total) VALUES($var(f_date), $var(t_date), 'OPTIONS', $stat(method::options)) ON DUPLICATE KEY UPDATE total=total+$stat(method::options)");
+		avp_db_query("INSERT INTO stats_method (from_date, to_date, method, total) VALUES($var(f_date), $var(t_date), 'OPTIONS', $stat(method::options)) ON DUPLICATE KEY UPDATE total=total+$stat(method::options)");
 		$stat(method::options) = 0;
 	}
 
 	if($stat(method::unknown) != NULL && $stat(method::unknown) != 0) {
-	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, total) VALUES($var(f_date), $var(t_date), 'UNKNOWN', $stat(method::unknown)) ON DUPLICATE KEY UPDATE total=total+$stat(method::unknown)");
+		avp_db_query("INSERT INTO stats_method (from_date, to_date, method, total) VALUES($var(f_date), $var(t_date), 'UNKNOWN', $stat(method::unknown)) ON DUPLICATE KEY UPDATE total=total+$stat(method::unknown)");
 		$stat(method::unknown) = 0;
 	}
 
 	#ACK
 	if($stat(method::ack) != NULL && $stat(method::ack) != 0) {
-	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, total) VALUES($var(f_date), $var(t_date), 'ACK', $stat(method::ack)) ON DUPLICATE KEY UPDATE total=total+$stat(method::ack)");
+		avp_db_query("INSERT INTO stats_method (from_date, to_date, method, total) VALUES($var(f_date), $var(t_date), 'ACK', $stat(method::ack)) ON DUPLICATE KEY UPDATE total=total+$stat(method::ack)");
 		$stat(method::ack) = 0;
 	}
 
 	#REFER
 	if($stat(method::refer) != NULL && $stat(method::refer) != 0) {
-        	avp_db_query("INSERT INTO stats_method (from_date, to_date, method, total) VALUES($var(f_date), $var(t_date), 'REFER', $stat(method::refer)) ON DUPLICATE KEY UPDATE total=total+$stat(method::refer)");
+		avp_db_query("INSERT INTO stats_method (from_date, to_date, method, total) VALUES($var(f_date), $var(t_date), 'REFER', $stat(method::refer)) ON DUPLICATE KEY UPDATE total=total+$stat(method::refer)");
 		$stat(method::refer) = 0;
 	}
 
 	#UPDATE
 	if($stat(method::update) != NULL && $stat(method::update) != 0) {
-	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, total) VALUES($var(f_date), $var(t_date), 'UPDATE', $stat(method::update)) ON DUPLICATE KEY UPDATE total=total+$stat(method::update)");
+		avp_db_query("INSERT INTO stats_method (from_date, to_date, method, total) VALUES($var(f_date), $var(t_date), 'UPDATE', $stat(method::update)) ON DUPLICATE KEY UPDATE total=total+$stat(method::update)");
 		$stat(method::update) = 0;
 	}
 
 	#RESPONSE
 	#300
 	if($stat(response::300) != NULL && $stat(response::300) != 0) {
-	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, total) VALUES($var(f_date), $var(t_date), '300', $stat(response::300)) ON DUPLICATE KEY UPDATE total=total+$stat(response::300)");
+		avp_db_query("INSERT INTO stats_method (from_date, to_date, method, total) VALUES($var(f_date), $var(t_date), '300', $stat(response::300)) ON DUPLICATE KEY UPDATE total=total+$stat(response::300)");
 		$stat(response::300) = 0;
 	}
 
 	#407 INVITE
 	if($stat(response::407::invite) != NULL && $stat(response::407::invite) != 0) {
-	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, cseq, total) VALUES($var(f_date), $var(t_date), '407', 'INVITE', $stat(response::407::invite)) ON DUPLICATE KEY UPDATE total=total+$stat(response::407::invite)");
+		avp_db_query("INSERT INTO stats_method (from_date, to_date, method, cseq, total) VALUES($var(f_date), $var(t_date), '407', 'INVITE', $stat(response::407::invite)) ON DUPLICATE KEY UPDATE total=total+$stat(response::407::invite)");
 		$stat(response::407::invite) = 0;
 	}
 
 	#401 INVITE
 	if($stat(response::401::invite) != NULL && $stat(response::401::invite) != 0) {
-	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, cseq, total) VALUES($var(f_date), $var(t_date), '401', 'INVITE', $stat(response::401::invite)) ON DUPLICATE KEY UPDATE total=total+$stat(response::401::invite)");
+		avp_db_query("INSERT INTO stats_method (from_date, to_date, method, cseq, total) VALUES($var(f_date), $var(t_date), '401', 'INVITE', $stat(response::401::invite)) ON DUPLICATE KEY UPDATE total=total+$stat(response::401::invite)");
 		$stat(response::401::invite) = 0;
 	}
 
 	#100 INVITE
 	if($stat(response::100::invite) != NULL && $stat(response::100::invite) != 0) {
-	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, cseq, total) VALUES($var(f_date), $var(t_date), '100', 'INVITE', $stat(response::100::invite)) ON DUPLICATE KEY UPDATE total=total+$stat(response::100::invite)");
+		avp_db_query("INSERT INTO stats_method (from_date, to_date, method, cseq, total) VALUES($var(f_date), $var(t_date), '100', 'INVITE', $stat(response::100::invite)) ON DUPLICATE KEY UPDATE total=total+$stat(response::100::invite)");
 		$stat(response::100::invite) = 0;
 	}
 
 	#180 INVITE
 	if($stat(response::180::invite) != NULL && $stat(response::180::invite) != 0) {
-	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, cseq, total) VALUES($var(f_date), $var(t_date), '180', 'INVITE', $stat(response::180::invite)) ON DUPLICATE KEY UPDATE total=total+$stat(response::180::invite)");
+		avp_db_query("INSERT INTO stats_method (from_date, to_date, method, cseq, total) VALUES($var(f_date), $var(t_date), '180', 'INVITE', $stat(response::180::invite)) ON DUPLICATE KEY UPDATE total=total+$stat(response::180::invite)");
 		$stat(response::180::invite) = 0;
 	}
 
 	#183 INVITE
 	if($stat(response::183::invite) != NULL && $stat(response::183::invite) != 0) {
-	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, cseq, total) VALUES($var(f_date), $var(t_date), '183', 'INVITE', $stat(response::183::invite)) ON DUPLICATE KEY UPDATE total=total+$stat(response::183::invite)");
+		avp_db_query("INSERT INTO stats_method (from_date, to_date, method, cseq, total) VALUES($var(f_date), $var(t_date), '183', 'INVITE', $stat(response::183::invite)) ON DUPLICATE KEY UPDATE total=total+$stat(response::183::invite)");
 		$stat(response::183::invite) = 0;
 	}
 
 	#200 INVITE
 	if($stat(response::200::invite) != NULL && $stat(response::200::invite) != 0) {
-	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, cseq, total) VALUES($var(f_date), $var(t_date), '200', 'INVITE', $stat(response::200::invite)) ON DUPLICATE KEY UPDATE total=total+$stat(response::200::invite)");
+		avp_db_query("INSERT INTO stats_method (from_date, to_date, method, cseq, total) VALUES($var(f_date), $var(t_date), '200', 'INVITE', $stat(response::200::invite)) ON DUPLICATE KEY UPDATE total=total+$stat(response::200::invite)");
 		$stat(response::200::invite) = 0;
 	}
 
 	#407 BYE
 	if($stat(response::407::bye) != NULL && $stat(response::407::bye) != 0) {
-	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, cseq, total) VALUES($var(f_date), $var(t_date), '407', 'BYE', $stat(response::407::bye)) ON DUPLICATE KEY UPDATE total=total+$stat(response::407::bye)");
+		avp_db_query("INSERT INTO stats_method (from_date, to_date, method, cseq, total) VALUES($var(f_date), $var(t_date), '407', 'BYE', $stat(response::407::bye)) ON DUPLICATE KEY UPDATE total=total+$stat(response::407::bye)");
 		$stat(response::407::bye) = 0;
 	}
 
 	#401 BYE
 	if($stat(response::401::bye) != NULL && $stat(response::401::bye) != 0) {
-        	avp_db_query("INSERT INTO stats_method (from_date, to_date, method, cseq, total) VALUES($var(f_date), $var(t_date), '401', 'BYE', $stat(response::401::bye)) ON DUPLICATE KEY UPDATE total=total+$stat(response::401::bye)");
+		avp_db_query("INSERT INTO stats_method (from_date, to_date, method, cseq, total) VALUES($var(f_date), $var(t_date), '401', 'BYE', $stat(response::401::bye)) ON DUPLICATE KEY UPDATE total=total+$stat(response::401::bye)");
 		$stat(response::401::bye) = 0;
 	}
 
 	#200 BYE
 	if($stat(response::200::bye) != NULL && $stat(response::200::bye) != 0) {
-	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, cseq, total) VALUES($var(f_date), $var(t_date), '200', 'BYE', $stat(response::200::bye)) ON DUPLICATE KEY UPDATE total=total+$stat(response::200::bye)");
+		avp_db_query("INSERT INTO stats_method (from_date, to_date, method, cseq, total) VALUES($var(f_date), $var(t_date), '200', 'BYE', $stat(response::200::bye)) ON DUPLICATE KEY UPDATE total=total+$stat(response::200::bye)");
 		$stat(response::200::bye) = 0;
 	}
 
 	#ALL TRANSACTIONS MESSAGES
 	if($stat(method::all) != NULL && $stat(method::all) != 0) {
-	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, total) VALUES($var(f_date), $var(t_date), 'ALL', $stat(method::all)) ON DUPLICATE KEY UPDATE total=total+$stat(method::all)");
+		avp_db_query("INSERT INTO stats_method (from_date, to_date, method, total) VALUES($var(f_date), $var(t_date), 'ALL', $stat(method::all)) ON DUPLICATE KEY UPDATE total=total+$stat(method::all)");
 		$stat(method::all) = 0;
 	}
 
 	#ALL MESSAGES ON INTERFACE
 	if($stat(method::total) != NULL && $stat(method::total) != 0) {
-	        avp_db_query("INSERT INTO stats_method (from_date, to_date, method, total) VALUES($var(f_date), $var(t_date), 'TOTAL', $stat(method::total)) ON DUPLICATE KEY UPDATE total=total+$stat(method::total)");
+		avp_db_query("INSERT INTO stats_method (from_date, to_date, method, total) VALUES($var(f_date), $var(t_date), 'TOTAL', $stat(method::total)) ON DUPLICATE KEY UPDATE total=total+$stat(method::total)");
 		$stat(method::total) = 0;
 	}
 }
@@ -609,28 +609,28 @@ route[CHECK_STATS] {
 
 route[STORE] {
 
-        if($rm == "REGISTER") {
-                $var(table) = "sip_capture_registration";
-        }
-        else if($rm =~ "(INVITE|UPDATE|BYE|ACK|PRACK|REFER|CANCEL)$")
-        {
-                $var(table) = "sip_capture_call";
-        }
-        else if($rm =~ "(NOTIFY)$" && is_present_hf("Event") && $hdr(Event)=~"refer;")
-        {
-                $var(table) = "sip_capture_call";
-        }
-        else if($rm =~ "(INFO)$")
-        {
-                $var(table) = "sip_capture_call";
-        }
-        else if($rm =~ "(OPTIONS)$" )
-        {
-            $var(table) = "sip_capture_rest";
-        }
-        else {
-            $var(table) = "sip_capture_rest";
-        }
+	if($rm == "REGISTER") {
+		$var(table) = "sip_capture_registration";
+	}
+	else if($rm =~ "(INVITE|UPDATE|BYE|ACK|PRACK|REFER|CANCEL)$")
+	{
+		$var(table) = "sip_capture_call";
+	}
+	else if($rm =~ "(NOTIFY)$" && is_present_hf("Event") && $hdr(Event)=~"refer;")
+	{
+		$var(table) = "sip_capture_call";
+	}
+	else if($rm =~ "(INFO)$")
+	{
+		$var(table) = "sip_capture_call";
+	}
+	else if($rm =~ "(OPTIONS)$" )
+	{
+		$var(table) = "sip_capture_rest";
+	}
+	else {
+		$var(table) = "sip_capture_rest";
+	}
 
 	#$var(utc) = "%Y%m%d";
 
@@ -642,14 +642,14 @@ route[STORE] {
 
 route[my_hep_route] {
 
-        ### hep_get([data type,] chunk_id, vendor_id_pvar, chunk_data_pvar)
-        ### data type is optional for most of the generic chunks
-        ### Full list here: http://www.opensips.org/html/docs/modules/2.2.x/sipcapture#hep_set_id
+	### hep_get([data type,] chunk_id, vendor_id_pvar, chunk_data_pvar)
+	### data type is optional for most of the generic chunks
+	### Full list here: http://www.opensips.org/html/docs/modules/2.2.x/sipcapture#hep_set_id
 
 	#Protocol ID
 	hep_get("11", "$var(vid)", "$var(data)");
 
-        $var(proto) = $(var(data){s.int});
+	$var(proto) = $(var(data){s.int});
 
 	#Logs Or Stats
 	if($var(proto) == 100 || $var(proto) == 99) {
